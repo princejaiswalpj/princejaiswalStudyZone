@@ -7,8 +7,8 @@ This project demonstrates real-world backend architecture with role-based access
 
 ## 🌐 Live Demo
 
-* 🔗 API Docs: https://your-backend-link.onrender.com/docs
-* 🔗 GitHub Repo: https://github.com/your-username/your-repo
+* 🔗 API Docs: [https://your-backend-link.onrender.com/docs](https://princejaiswalstudyzone.onrender.com)
+* 🔗 GitHub Repo: [(https://github.com/princejaiswalpj/princejaiswalStudyZone)
 
 ---
 
