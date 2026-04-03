@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from app.schemas.course import CourseResponse
-from app.db.base import Base
 
 class EnrollmentResponse(BaseModel):
     id: int
@@ -15,7 +14,7 @@ class MyEnrollmentCourseResponse(BaseModel):
     id: int
     course: CourseResponse
 
-    class config:
+    class Config:
         from_attributes = True
 
 class EnrolledStudentInfo(BaseModel):

@@ -23,7 +23,7 @@ class UserResponse(UserBase):
     is_active: bool
 
     class Config:
-        from_attribute = True
+        from_attributes = True
 
 class TokenResponse(BaseModel):
     access_token: str

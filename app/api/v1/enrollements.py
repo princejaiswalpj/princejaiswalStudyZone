@@ -76,7 +76,7 @@ def get_course_enrollments(
             detail="Course not found"
         )
     
-    if course.teacher != UserRole.admin and course.teacher_id != current_user.id:
+    if current_user.role != UserRole.admin and course.teacher_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view enrollments for this course."

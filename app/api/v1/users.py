@@ -27,5 +27,5 @@ def get_admin_stats(
         "total_admins": total_admins,
         "total_courses": total_courses,
         "total_published_courses": total_published_courses,
-        "total_enrollements": total_enrollments
+        "total_enrollments": total_enrollments
     }

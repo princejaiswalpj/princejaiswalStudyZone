@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status ,Query
 from sqlalchemy.orm import Session, joinedload ,selectinload
 
-from app.core.dependecies import get_db, get_current_user,require_teacher
+from app.core.dependecies import get_db, get_current_user, get_current_user_optional, require_teacher
 from app.models.course import Course,Section, Lecture, Note
 from app.models.enrollment import Enrollment
 from app.models.user import User, UserRole  
@@ -11,7 +11,7 @@ from app.schemas.content import SectionCreate, SectionResponse, LectureCreate, L
 router = APIRouter()
 
 @router.post("/", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
-def create_course(course_data: CourseCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_course(course_data: CourseCreate, db: Session = Depends(get_db), current_user: User = Depends(require_teacher)):
     if course_data.is_free:
         course_data.price = 0.0
     if not course_data.is_free and course_data.price <= 0:
@@ -43,9 +43,9 @@ def create_course(course_data: CourseCreate, db: Session = Depends(get_db), curr
 @router.get("/", response_model=list[CourseResponse])
 def list_courses(
     db: Session = Depends(get_db),
-    current_user: User | None = Depends(get_current_user)
+    current_user: User | None = Depends(get_current_user_optional)
 ):
-    if current_user and current_user.role in ["teacher", "admin"]:
+    if current_user and current_user.role in [UserRole.teacher, UserRole.admin]:
         courses = (
             db.query(Course)
             .options(joinedload(Course.teacher))
@@ -91,7 +91,7 @@ def get_my_created_courses(
     )
     return courses
 
-@router.get("/{course_id}/publish", response_model=list[CourseResponse])
+@router.patch("/{course_id}/publish", response_model=CourseResponse)
 def publish_course(
     course_id: int,
     db: Session = Depends(get_db),
@@ -166,7 +166,7 @@ def update_course(
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     
-    if current_user.role != "admin" and course.teacher_id != current_user.id:
+    if current_user.role != UserRole.admin and course.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this course")
     
     update_data =course_data.model_dump(exclude_unset=True)
@@ -212,7 +212,7 @@ def delete_course(course_id: int, db: Session = Depends(get_db), current_user: U
 
 
 # Additional endpoints for sections, lectures, and notes can be implemented similarly, ensuring proper authorization and data validation.
-@router.post("/{course_id}/sections" , response_model=CourseContentResponse,status_code=status.HTTP_200_OK)
+@router.post("/{course_id}/sections" , response_model=SectionResponse,status_code=status.HTTP_201_CREATED)
 def create_section(
     course_id: int,
     section_data: SectionCreate,
@@ -227,7 +227,7 @@ def create_section(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to add section to this course")
     
     new_section = Section(
-        Course_id = course_id,
+        course_id=course_id,
         title=section_data.title,
         order_num =section_data.order_num    
     )
@@ -308,12 +308,19 @@ def get_course_content(course_id: int, db: Session = Depends(get_db), current_us
     if course is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     
-    if current_user.role in [UserRole.teacher, UserRole.admin]:
-        if current_user.role == UserRole.admin and course.teacher_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this course content")
-    return course
+    if current_user.role == UserRole.admin:
+        return course
 
-    enrollment = db.query(Enrollment).filter(Enrollment.course_id == course_id, Enrollment.student_id == current_user.id).first()
+    if current_user.role == UserRole.teacher:
+        if course.teacher_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this course content")
+        return course
+
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.course_id == course_id, Enrollment.user_id == current_user.id)
+        .first()
+    )
 
     if enrollment is None :
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enrolled in this course")

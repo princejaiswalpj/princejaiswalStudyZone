@@ -9,3 +9,5 @@ venv/
 env/
 .env
 
+
+# postgresql://postgres1:P8o0hZnGgHsnGSSSRq7ghwBMSwtIrt98@dpg-d74d1otactks738ct630-a/studyzone_postgres
